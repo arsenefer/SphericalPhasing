@@ -1,4 +1,6 @@
 data/*
 results/*
+results_cr/*
 codes/
 *__pycache__/
+plot_hist_*

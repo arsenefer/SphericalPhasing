@@ -83,23 +83,58 @@ def signals_summing_ref(signals, shifted_times, reference_antenna=0):
         output[source_idx, 1:4,:] = _sumef
     return output
 
+def signals_summing_ref_adf(signals, shifted_times, weights=None, reference_antenna=0):
+    """
+        Compute the summed signal from different sources
+        inputs:
+            signals_ (np.ndarray): signals from simulations shape : (4, n_antennas, trance_len)
+            shifted_times_ (np.ndarray): times of the begining of signals from every source. shape (n_sources, n_antennas)
+        outputs:
+            list of summed signal. list of np.ndarray of shape : (4, len_out_trace)
+    """
+    if weights is None:
+        weights = np.ones(shifted_times.shape)
+    _tstep = signals[0,0,1] - signals[0,0,0] #ns
+    trace_len = signals.shape[-1]
+    n_sources, n_antennas = shifted_times.shape
+    trace_duration = trace_len * _tstep
+    output = np.zeros((n_sources, 4, trace_len))
+    output[:,0,:] = np.arange(trace_len)[None,:] * _tstep + shifted_times[:,reference_antenna,None]
+    for source_idx, source_times in enumerate(shifted_times):
+        _sumef = np.zeros((3, trace_len))
+        ref_time = source_times[reference_antenna]
+
+        _start_idx = np.int_((source_times - ref_time)/_tstep)   #Start idx for each antenna
+        _start_idx = np.clip(_start_idx, 0, trace_len-1)
+
+        _end_idx = _start_idx+trace_len #Last idx for each antenna (length of traces)
+        _end_idx = np.clip(_end_idx, 0, trace_len)
+
+        for anti in range(n_antennas):
+            _sumef[0, _start_idx[anti]:_end_idx[anti]] += weights[source_idx, anti] * signals[1,anti,:_end_idx[anti]-_start_idx[anti]]
+            _sumef[1, _start_idx[anti]:_end_idx[anti]] += weights[source_idx, anti] * signals[2,anti,:_end_idx[anti]-_start_idx[anti]]
+            _sumef[2, _start_idx[anti]:_end_idx[anti]] += weights[source_idx, anti] * signals[3,anti,:_end_idx[anti]-_start_idx[anti]]
+        
+        output[source_idx, 1:4,:] = _sumef
+    return output
+
 
 def spherical_phasing(xsrc, ysrc, zsrc, xant, yant, zant, timings):
     """
         Compute timing shifted for source position (xsrc, ysrc, zrsc) at antenna location (xant, yant, zant)
         inputs:
-            xsrc_ (float or np.ndarray): source x position. Can be float for single source or ndarray of shape (n_sources) for parralel
-            ysrc_ (float or np.ndarray): source y position. Can be float for single source or ndarray of shape (n_sources) for parralel
-            zsrc_ (float or np.ndarray): source z position. Can be float for single source or ndarray of shape (n_sources) for parralel
-            xant_ (np.ndarray): antenna x position. shape (n_antennas)
-            yant_ (np.ndarray): antenna y position. shape (n_antennas)
-            zant_ (np.ndarray): antenna z position. shape (n_antennas)
+            xsrc (float or np.ndarray): source x position. Can be float for single source or ndarray of shape (n_sources) for parralel
+            ysrc (float or np.ndarray): source y position. Can be float for single source or ndarray of shape (n_sources) for parralel
+            zsrc (float or np.ndarray): source z position. Can be float for single source or ndarray of shape (n_sources) for parralel
+            xant (np.ndarray): antenna x position. shape (n_antennas)
+            yant (np.ndarray): antenna y position. shape (n_antennas)
+            zant (np.ndarray): antenna z position. shape (n_antennas)
             timings (np.ndarray): initial timing of first time bin in simualtion shape: (n_antennas)
     """
     if isinstance(xsrc, (float, np.number)):
-        xsrc_ = np.array([xsrc])
-        ysrc_ = np.array([ysrc])
-        zsrc_ = np.array([zsrc])
+        xsrc = np.array([xsrc])
+        ysrc = np.array([ysrc])
+        zsrc = np.array([zsrc])
     assert xsrc.ndim == 1
     _ctdelays = np.sqrt((xant[None,:]-xsrc[:,None])**2+(yant[None,:]-ysrc[:,None])**2+(zant[None,:]-zsrc[:,None])**2) #shape (nsources, nantennas)
     
@@ -129,7 +164,6 @@ def spherical_beamforming(xsrc, ysrc, zsrc, xant, yant, zant, signals, reference
         return:
             _shifted_times (np.ndarray): First time bin per event. shape (n_sources, n_antennas)
             _beamformed_signals (np.ndarray): summed signal with corresponding amplitudes. shape (n_sources, 4, output_trace_len)
-
     """
     _shifted_times = spherical_phasing(xsrc, ysrc, zsrc, xant, yant, zant, signals[0, :, 0])
     _beamformed_signals = signals_summing(signals, _shifted_times)

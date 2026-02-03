@@ -4,7 +4,7 @@ import numpy as np
 import scipy.signal as ss
 # sys.path.insert(0, '/Users/decoene/Documents/MyLibs_python/ZHAireS-Python')
 # import AiresInfoFunctions as AiresInfo
-from .AiresInfoFunctions import (GetZHSEffectiveRefractionIndex, ZHSEffectiveRefractionIndexvect, ZHSEffectiveRefractionIndexvectTwice)
+from ..AiresInfoFunctions import (GetZHSEffectiveRefractionIndex, ZHSEffectiveRefractionIndexvect, ZHSEffectiveRefractionIndexvectTwice)
 ################################################################################
 kc = 299792458. #m/s
 kc_ns = 299792458.*1.e-9 #m/ns

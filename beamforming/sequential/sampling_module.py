@@ -4,8 +4,8 @@ import scipy.optimize as so
 import matplotlib.pyplot as plt
 #local modules
 from . import beamforming_module as bm
-from .utils import progressbar
-from .update_walker import mcmc_candidate, temper_candidate
+from ..utils import progressbar
+from ..update_walker import mcmc_candidate, temper_candidate
 F_SAMPLE = 10. #GHz
 
 def _compute_amp(spherical_beamformed_Sig_modulus_2):

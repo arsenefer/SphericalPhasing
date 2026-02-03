@@ -38,10 +38,10 @@ def get_event(event_number_, tau_events, antennas, efields, sttimes, sampling_pe
     antenna_pos = np.copy(antennas['position'])
     antenna_alt = antennas['coordinates'][:,2]
 
-    #Altitude shift
-    tau_pos[2] += tau_alt
-    xmax_pos[2] += xmax_alt
-    antenna_pos[:,2] += antenna_alt
+    #Altitude shift to get sea level coordinates (first antenna at ground_altitude)
+    tau_pos[2] += antenna_alt[0]
+    xmax_pos[2] += antenna_alt[0]
+    antenna_pos[:,2] += antenna_alt[0]
 
     t0s = sttimes[event_number_,:]
     duration = (event_efield.shape[-1]-1) * sampling_period

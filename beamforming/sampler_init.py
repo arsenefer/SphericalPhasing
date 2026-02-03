@@ -77,3 +77,30 @@ def create_regular_grid(n_walkers, n_steps, Xrange, Yrange, Zrange, in_bound_fun
     grid_points = grid_points.reshape(N_point_xy**2, N_point_z, 3)
     grid_points[~in_bound_function(grid_points[..., 0], grid_points[...,1], grid_points[...,2])] = np.nan
     return grid_points
+
+def sample_3planes(n_walkers, n_steps, center_pos, radius, shower_dir):
+    # Create three planes ortogonal to the shower direction
+    # And placed at center_pos +/- radius along the shower direction
+    # On each plane, regular create a grid of points within a square of side 2*radius
+    # The number of points on each plane is n_walkers * n_step // 3
+    n_planes = 3
+    n_points_per_plane = n_walkers * n_steps // n_planes
+    n_points_per_ax = int(np.ceil(np.sqrt(n_points_per_plane)))
+    side_length = 2 * radius
+# n_points_per_ax = 50
+# side_length = 2 * 50
+# shower_dir = np.array([1, 0, 0])
+    projected_X, projected_Y = np.mgrid[-side_length/2:side_length/2:n_points_per_ax*1j, -side_length/2:side_length/2:n_points_per_ax*1j]
+    projected_points = np.stack([projected_X, projected_Y, np.zeros_like(projected_Y)], axis=-1)
+    shower_dir = shower_dir / np.linalg.norm(shower_dir)
+    if np.allclose(shower_dir, np.array([0, 0, 1])):
+        ortho1 = np.array([1, 0, 0])
+    else:
+        ortho1 = np.cross(shower_dir, np.array([0, 0, 1]))
+        ortho1 /= np.linalg.norm(ortho1)
+    ortho2 = np.cross(shower_dir, ortho1)
+    ortho2 /= np.linalg.norm(ortho2)
+    rotation_matrix = np.stack([ortho1, ortho2, shower_dir], axis=1)
+    rotated_points = (rotation_matrix @ projected_points.reshape(3, -1)).reshape(n_points_per_ax**2, 3)
+    plane_offsets = (center_pos + np.array([-radius, 0, radius]))[:, None] * shower_dir[None, :]
+

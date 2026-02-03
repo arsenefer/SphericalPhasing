@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from time import time
 
 # Importing custom modules
-import beamforming.beamforming_module as bm
+# import beamforming.sequential.beamforming_module as bm
 import beamforming.read_sims_module as rm
 import beamforming.signal_module as sm
 import beamforming.sampling_module_para as sp
@@ -30,7 +30,7 @@ class Config:
     """
     Configuration class to hold all parameters for the reconstruction process.
     """
-    path_to_library: str = "/volatile/home/af274537/Documents/WorkingDir/HERON/SphericalPhasing_2/data/TauLibrary_972Events_Eshower_2e7-1e9GeV_XYZCoordinates.npz"
+    path_to_library: str = "/volatile/home/af274537/Documents/WorkingDir/HERON/SphericalPhasing_2/data/TauLibrary_972Events_Eshower_2e7-1e9GeV_XYZCoordinates_CorrXmax.npz"
     save_path: str = './results'
     sampling: str = 'random'
     n_walkers: int = 200
@@ -113,7 +113,6 @@ def plot_recons_map(walker_positions, beamformed_intensity_array, X_0, xmax_pos,
     ax[2].plot(summed.keys(), summed.values())
     plt.show()
 
-
 def save_samples(saving_path, walker_positions, beamformed_intensity_array, eventi, sampling, n_walkers, n_steps, step_size, bounds, amp_or_fluence, temp, **kwargs):
     """
     Save the sampled walker positions and beamformed intensity array to a file.
@@ -132,7 +131,7 @@ def save_samples(saving_path, walker_positions, beamformed_intensity_array, even
         temp (float): Temperature for sampling.
         **kwargs: Additional parameters to save.
     """
-    directory = f"{saving_path}/samples_sampling{sampling}_nwalkers{n_walkers}_nsteps{n_steps}_stepsize{step_size:.0f}_bounds{bounds}_intens{amp_or_fluence}_temp{temp:.0f}"
+    directory = f"{saving_path}/AAAAAAAAAAAAAAAAAAAAAAAAAAAA_samples_sampling{sampling}_nwalkers{n_walkers}_nsteps{n_steps}_stepsize{step_size:.0f}_bounds{bounds}_intens{amp_or_fluence}_temp{temp:.0f}"
     os.makedirs(directory, exist_ok=True)
     np.savez(f"{directory}/event{eventi}.npz", 
              walker_positions=walker_positions, 
@@ -156,7 +155,7 @@ def main(config: Config):
     """
     name_prefix = "LEevents_"
     tau_events, antennas, efields, sttimes = rm.read_library(config.path_to_library)
-    Eventlist = range(5, 10)  # List of events to process
+    Eventlist = range(8, 10)  # List of events to process
     Nevents = len(Eventlist)
 
     results = []
@@ -245,6 +244,8 @@ def main(config: Config):
                 method=config.intens_method, T=config.temp, reference_antenna=reference_antenna
             )
             beamformed_proba_array = rec.make_proba_array(beamformed_intensity_array, T=None, threshold=2000.)
+        elif config.sampling == "3planes":
+            walker_positions = sample_3planes(config.n_walkers, config.n_steps, xmax_pos, config.r, shower_dir)
         else:
             raise ValueError("Invalid sampling method.")
 

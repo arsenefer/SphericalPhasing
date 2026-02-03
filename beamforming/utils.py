@@ -29,3 +29,8 @@ def get_peaks_hilbert(signal):
     peakt=np.take_along_axis(signal[0,:,:], sel, axis=1)
 
     return peakt.reshape(len(signal[0,:,:])), peaka.reshape(len(signal[0,:,:]))
+
+
+########Constants
+Bvec =  [-20.16850382,  10.52718602, 0.37808577]
+Bn = Bvec/np.linalg.norm(Bvec)
