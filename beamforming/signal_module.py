@@ -2,6 +2,8 @@ import sys
 import numpy as np
 import h5py
 from scipy import interpolate
+from scipy.signal import butter, lfilter, filtfilt
+
 ################################################################################
 ##Global paths
 GP_AntennaModels_path = "/volatile/home/af274537/Documents/WorkingDir/HERON/SphericalPhasing/beamforming/AntennaModels/"
@@ -148,23 +150,22 @@ def add_time_jitter(time, jitter_std):
 
     return time + jitter
 
+def _butter_bandpass_filter(data, lowcut, highcut, fs):
+    """subfunction of filt
+    """
+    b, a = butter(5, [lowcut / (0.5 * fs), highcut / (0.5 * fs)], btype='band')  # (order, [low, high], btype)
+    return lfilter(b, a, data) #causal
+
 def filter_Efields(efields, fmin, fmax):
     """
     time axis = ns
     fmin, fmax = MHz
     """
 
-    dt = np.mean(np.diff(efields[0,:,:]))*1.e-9
-    len_traces = len(efields[1,0,:])
-
-    FT_Efields = np.fft.rfft(efields[1:,:,:])
-    freqs = np.fft.rfftfreq(len_traces,dt)
-
-    sel = np.where((freqs<fmin*1.e6)|(freqs>fmax*1.e6))[0]
-    FT_Efields[:,:,sel] = 0
-
+    dt =(efields[0,0,1] - efields[0,0,0])
+    fs = 1/dt * 1e3  #MHz
     filt_Efields = np.copy(efields)
-    filt_Efields[1:,:,:] = np.fft.irfft(FT_Efields, n=len_traces, axis=2)
+    filt_Efields[1:,:,:] = _butter_bandpass_filter(filt_Efields[1:,:,:], fmin, fmax, fs)
     return filt_Efields
 
 def process_signals_Efield(efields, azim, zen, fmin, fmax, noise_std, jitter_std):
@@ -182,7 +183,11 @@ def process_signals_Efield(efields, azim, zen, fmin, fmax, noise_std, jitter_std
         signals = efields
 
     if noise_std !=0:
-        signals[1:,:,:] += np.random.normal(0,noise_std,size=np.shape(signals[1:,:,:]))
+        noise = np.random.normal(0, noise_std, size=np.shape(signals[1:,:,:]))
+        noise_filtered = filter_Efields(np.vstack((signals[0:1,:,:], noise)), fmin, fmax)[1:,:,:]
+        std_filtered = np.mean( np.std(noise_filtered[:,:,:], axis=-1) )
+        noise_scaled = noise_filtered * (noise_std / std_filtered) 
+        signals[1:,:,:] += noise_scaled
 
     if jitter_std !=0:
         signals[0,:,:] = add_time_jitter(signals[0,:,:], jitter_std)

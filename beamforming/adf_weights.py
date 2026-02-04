@@ -58,7 +58,7 @@ def ADF_parameters(theta, phi, delta_omega, Xants, Xsource, Bn=Bn):
     
     return eta, omega, omega_cr, l_ant, adf
 
-def compute_adf_weights(xs, ys, zs, theta, phi, xant, yant, zant):
+def compute_adf_weights(xs, ys, zs, theta, phi, xant, yant, zant, delta_omega=0.2):
     """
     Compute ADF weights for given source and antenna positions.
 
@@ -69,10 +69,9 @@ def compute_adf_weights(xs, ys, zs, theta, phi, xant, yant, zant):
     Returns:
         ndarray: Computed ADF weights for each antenna. shape (n_antennas)
     """
-    eta, omega, omega_cr, l_ant, adf = ADF_parameters(theta, phi, delta_omega=0.2,
+    eta, omega, omega_cr, l_ant, adf = ADF_parameters(theta, phi, delta_omega=delta_omega,
                                                      Xants=np.stack((xant, yant, zant), axis=-1),
                                                      Xsource=np.array([xs, ys, zs]))
-    print(omega_cr[0] * 180/np.pi)
     weights = adf
 
     return weights

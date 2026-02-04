@@ -26,14 +26,14 @@ def read_library(path_to_library_):
 
 def get_event(event_number_, tau_events, antennas, efields, sttimes, sampling_period=0.1):
 
-    azim = tau_events['phi'][event_number_]
-    zen = 90-tau_events['theta'][event_number_]
-    en_nu = tau_events['Enu'][event_number_]
-    en_tau = tau_events['E'][event_number_]
-    tau_pos = tau_events['position'][event_number_] #X, Y, Z
-    tau_alt = tau_events['coordinates'][event_number_][2]
-    xmax_pos = tau_events['Xmax_position'][event_number_] #X, Y, Z
-    xmax_alt = tau_events['Xmax_coordinates'][event_number_][2]
+    azim = np.copy(tau_events['phi'][event_number_])
+    zen = 90-np.copy(tau_events['theta'][event_number_])
+    en_nu = np.copy(tau_events['Enu'][event_number_])
+    en_tau = np.copy(tau_events['E'][event_number_])
+    tau_pos = np.copy(tau_events['position'][event_number_]) #X, Y, Z
+    tau_alt = np.copy(tau_events['coordinates'][event_number_][2])
+    xmax_pos = np.copy(tau_events['Xmax_position'][event_number_]) #X, Y, Z
+    xmax_alt = np.copy(tau_events['Xmax_coordinates'][event_number_][2])
     event_efield = efields[event_number_,:,:,:]*1.e6 #in muV/m
     antenna_pos = np.copy(antennas['position'])
     antenna_alt = antennas['coordinates'][:,2]

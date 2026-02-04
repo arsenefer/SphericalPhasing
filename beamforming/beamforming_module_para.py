@@ -49,6 +49,43 @@ def signals_summing(signals, shifted_times):
         list_out.append(_sumef)
     return list_out
 
+##phasing and beamforming functions
+def signals_summing_adf(signals, shifted_times, weights=None):
+    """
+        Compute the summed signal from different sources
+        inputs:
+            signals_ (np.ndarray): signals from simulations shape : (4, n_antennas, trance_len)
+            shifted_times_ (np.ndarray): times of the begining of signals from every source. shape (n_sources, n_antennas)
+        outputs:
+            list of summed signal. list of np.ndarray of shape : (4, len_out_trace)
+    """
+    if weights is None:
+        weights = np.ones(shifted_times.shape)
+    _tstep = signals[0,0,1] - signals[0,0,0] #ns
+    trace_len = signals.shape[-1]
+    n_sources, n_antennas = shifted_times.shape
+    trace_duration = trace_len * _tstep
+    list_out = []
+    for source_idx, source_times in enumerate(shifted_times):
+        first_time = np.min(source_times)    #First time of first antenna per sources shape (n_sources)
+        last_time = np.max(source_times) + trace_duration #Last time of last antenna
+        _tarray = np.arange(first_time, last_time+_tstep, _tstep)
+        _sumef = np.zeros((4, len(_tarray)))
+        _sumef[0] = _tarray
+
+
+        _start_idx = np.int_((source_times - first_time)/_tstep+_tstep)   #Start idx for each antenna
+        _end_idx = _start_idx+trace_len #Last idx for each antenna (length of traces)
+    
+
+        for anti in range(len(source_times)):
+            _sumef[1, _start_idx[anti]:_end_idx[anti]] += weights[source_idx, anti] * signals[1,anti,:]
+            _sumef[2, _start_idx[anti]:_end_idx[anti]] += weights[source_idx, anti] * signals[2,anti,:]
+            _sumef[3, _start_idx[anti]:_end_idx[anti]] += weights[source_idx, anti] * signals[3,anti,:]
+        
+        list_out.append(_sumef)
+    return np.array(list_out)
+
 
 def signals_summing_ref(signals, shifted_times, reference_antenna=0):
     """
