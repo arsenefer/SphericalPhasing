@@ -14,6 +14,8 @@ import beamforming.parameter_reconstruction as rec
 
 from beamforming.adf_weights import compute_adf_weights
 
+import argparse
+
 R2D = 180. / np.pi  # Conversion factor from radians to degrees
 
 @dataclass
@@ -41,10 +43,36 @@ class Config:
     sep_walkers: bool = False  # Separate walkers flag
     burn_in: int = 0  # Number of burn-in steps to discard
 
+def parse_args():
+    """
+    Parse command line arguments to override default configuration.
+    """
+    parser = argparse.ArgumentParser(description="Reconstruction Configuration")
+    parser.add_argument('--path_to_library', type=str, help='Path to the simulation library', default=None)
+    parser.add_argument('--save_path', type=str, help='Path to save results', default=None)
+    parser.add_argument('--f_min', type=float, help='Minimum frequency for bandpass filter', default=None)
+    parser.add_argument('--f_max', type=float, help='Maximum frequency for bandpass filter', default=None)
+    parser.add_argument('--noise_std', type=float, help='Standard deviation of noise to add', default=None)
+    parser.add_argument('--jitter_std', type=float, help='Standard deviation of timing jitter to add', default=None)
+    parser.add_argument('--intens_method', type=str, choices=['amplitude', 'power'], help='Method for intensity calculation', default=None)
+    
+    args = parser.parse_args()
+    config = Config()
+    
+    for key, value in vars(args).items():
+        if value is not None:
+            setattr(config, key, value)
+    
+    return config
+
+
 def main(config: Config):
-    name_prefix = "LEevents_"
+    if "2e7" in config.path_to_library:
+        name_prefix = "LEevents_"
+    elif "1e8" in config.path_to_library:
+        name_prefix = "HEevents_"
     tau_events, antennas, efields, sttimes = rm.read_library(config.path_to_library)
-    Eventlist = range(0,250)  # List of events to process
+    Eventlist = range(0,efields.shape[0])  # List of events to process
     Nevents = len(Eventlist)
 
     results = []
@@ -111,9 +139,12 @@ def main(config: Config):
             "nb_above1sigma": np.sum(amps > 1 * config.noise_std),
             "energy": en_tau,
             "en_nu": en_nu,
-
         })
         np.save(os.path.join(config.save_path, f'{name_prefix}{eventi}_intensity_map.npy'), All_intensity)
+        if (i + 1) % 50 == 0:
+            df = pd.DataFrame(results)
+            df.to_csv(os.path.join(config.save_path, f'{name_prefix}reconstruction_results.csv'), index=False)
+
     df = pd.DataFrame(results)
     df.to_csv(os.path.join(config.save_path, f'{name_prefix}reconstruction_results.csv'), index=False)
     t_end = time()
@@ -132,23 +163,6 @@ def main(config: Config):
     plt.show()
         
 
-        # fig, ax = plt.subplots(figsize=(8, 6))
-        # c = ax.pcolormesh(range_phi * 180 / np.pi, range_theta * 180 / np.pi, All_intensity, shading='auto')
-        # ax.scatter(phi*180/np.pi, theta*180/np.pi, color='red', marker='x', label='True Direction')
-        # ax.scatter(phi_layout*180/np.pi, theta_layout*180/np.pi, color='blue', marker='o', label='Layout Direction')
-        # ax.set_xlabel('Phi (degrees)')
-        # ax.set_ylabel('Theta (degrees)')
-        # ax.set_title(f'Beamformed Intensity Map for Event {eventi}')
-        # fig.colorbar(c, ax=ax, label='Intensity')
-        # plt.figure(figsize=(8,6))
-        # plt.scatter(xant/1e3, yant/1e3, c=10*np.log10(amps), cmap='viridis', s=20)
-        # plt.xlabel('X Antenna Position (km)')
-        # plt.ylabel('Y Antenna Position (km)')
-        # plt.title(f'Antenna Layout with Signal Amplitudes for Event {eventi}')
-        # plt.colorbar(label='Max Signal Amplitude')
-        # plt.gca().set_aspect('equal', adjustable='box')
-        # plt.show()
-
 if __name__ == "__main__":
-    config = Config()
+    config = parse_args()
     main(config)
