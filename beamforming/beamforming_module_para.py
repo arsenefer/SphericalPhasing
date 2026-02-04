@@ -1,11 +1,9 @@
 import time
 import sys
-from line_profiler import profile
 import numpy as np
 import scipy.signal as ss
 from .AiresInfoFunctions import (GetZHSEffectiveRefractionIndex, ZHSEffectiveRefractionIndexvect, ZHSEffectiveRefractionIndexvectTwice)
 # Optional: use numba to JIT the inner accumulation loop (much faster than pure Python loop for moderate sizes)
-from numba import njit, prange
 
 ################################################################################
 kc = 299792458. #m/s

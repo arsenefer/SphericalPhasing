@@ -161,12 +161,14 @@ def filter_Efields(efields, fmin, fmax):
     time axis = ns
     fmin, fmax = MHz
     """
-
-    dt =(efields[0,0,1] - efields[0,0,0])
-    fs = 1/dt * 1e3  #MHz
-    filt_Efields = np.copy(efields)
-    filt_Efields[1:,:,:] = _butter_bandpass_filter(filt_Efields[1:,:,:], fmin, fmax, fs)
-    return filt_Efields
+    if (fmax!=0) and (fmin!=0):
+        dt =(efields[0,0,1] - efields[0,0,0])
+        fs = 1/dt * 1e3  #MHz
+        filt_Efields = np.copy(efields)
+        filt_Efields[1:,:,:] = _butter_bandpass_filter(filt_Efields[1:,:,:], fmin, fmax, fs)
+        return filt_Efields
+    else:
+        return efields
 
 def process_signals_Efield(efields, azim, zen, fmin, fmax, noise_std, jitter_std):
     """
@@ -177,10 +179,7 @@ def process_signals_Efield(efields, azim, zen, fmin, fmax, noise_std, jitter_std
     jitter_std = ns
     """
 
-    if (fmax!=0):
-        signals = filter_Efields(efields, fmin, fmax)
-    else:
-        signals = efields
+    signals = filter_Efields(efields, fmin, fmax)
 
     if noise_std !=0:
         noise = np.random.normal(0, noise_std, size=np.shape(signals[1:,:,:]))
