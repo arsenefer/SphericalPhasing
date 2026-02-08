@@ -31,12 +31,13 @@ class Config:
     step_size: float = 1000.
     f_min: float = 30
     f_max: float = 250
-    noise_std: float = 13
+    noise_std: float = 0
     jitter_std: float = 0
     bounds: str = 'flat_sphere'  # Options: 'cubic', 'sphere', 'flat_sphere'
     r: float = 10.e3  # Radius for spherical bounds
     thickness: float = 4e3  # Thickness for flat spherical bounds
     intens_method: str = 'amplitude'  # Intensity calculation method
+    norm_weights: bool = True  # Whether to normalize ADF weights
     temp: float = 5000.  # Temperature for sampling
     x_max_method: str = 'max'  # Method for finding maximum
     n_best_walkers: int = 0  # Number of best walkers to consider
@@ -50,11 +51,12 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Reconstruction Configuration")
     parser.add_argument('--path_to_library', type=str, help='Path to the simulation library', default=None)
     parser.add_argument('--save_path', type=str, help='Path to save results', default=None)
-    parser.add_argument('--f_min', type=float, help='Minimum frequency for bandpass filter', default=None)
-    parser.add_argument('--f_max', type=float, help='Maximum frequency for bandpass filter', default=None)
-    parser.add_argument('--noise_std', type=float, help='Standard deviation of noise to add', default=None)
-    parser.add_argument('--jitter_std', type=float, help='Standard deviation of timing jitter to add', default=None)
-    parser.add_argument('--intens_method', type=str, choices=['amplitude', 'power'], help='Method for intensity calculation', default=None)
+    parser.add_argument('--f_min', type=float, help='Minimum frequency for bandpass filter', default=30)
+    parser.add_argument('--f_max', type=float, help='Maximum frequency for bandpass filter', default=250)
+    parser.add_argument('--noise_std', type=float, help='Standard deviation of noise to add', default=0)
+    parser.add_argument('--jitter_std', type=float, help='Standard deviation of timing jitter to add', default=0)
+    parser.add_argument('--intens_method', type=str, choices=['amplitude', 'power'], help='Method for intensity calculation', default='amplitude')
+    parser.add_argument('--norm_weights', type=bool, help='Whether to normalize ADF weights', default=False)
     
     args = parser.parse_args()
     config = Config()
@@ -65,6 +67,21 @@ def parse_args():
     
     return config
 
+
+def compute_intensity_map(theta, phi, Xsource, xant, yant, zant, signals, config):
+    shifted_times = bm.spherical_phasing(Xsource[0], Xsource[1], Xsource[2], xant, yant, zant, signals[0, :, 0])
+    range_theta = np.linspace(-4, 4, 100) * np.pi / 180 + theta
+    range_phi = np.linspace(-4, 4, 100) * np.pi / 180 + phi
+    All_intensity = np.zeros((len(range_theta), len(range_phi)))
+    for i, theta_i in enumerate(range_theta):
+        for j, phi_j in enumerate(range_phi):
+            weights = compute_adf_weights(Xsource[0], Xsource[1], Xsource[2], theta_i, phi_j, xant, yant, zant, delta_omega=1.0, norm_weights=config.norm_weights)
+            output = bm.signals_summing_adf(signals, shifted_times, weights[None, :])
+            norm_2 = output[0, 1, :]**2 + output[0, 2, :]**2 + output[0, 3, :]**2
+            compute_intensity = sp.compute_amp if config.intens_method == 'amplitude' else sp.compute_power
+            intensity = compute_intensity(norm_2)
+            All_intensity[i, j] = intensity
+    return All_intensity, range_theta, range_phi
 
 def main(config: Config):
     if "2e7" in config.path_to_library:
@@ -88,19 +105,14 @@ def main(config: Config):
             )
 
         Xsource = xmax_pos
-        shifted_times = bm.spherical_phasing(Xsource[0], Xsource[1], Xsource[2], xant, yant, zant, signals[0, :, 0])
-        range_theta = np.linspace(-4, 4, 100) * np.pi / 180 + theta
-        range_phi = np.linspace(-4, 4, 100) * np.pi / 180 + phi
-        All_intensity = np.zeros((len(range_theta), len(range_phi)))
-        for i, theta_i in enumerate(range_theta):
-            for j, phi_j in enumerate(range_phi):
-                weights = compute_adf_weights(Xsource[0], Xsource[1], Xsource[2], theta_i, phi_j, xant, yant, zant, delta_omega=1.0)
-                output = bm.signals_summing_adf(signals, shifted_times, weights[None, :])
-                norm_2 = output[0, 1, :]**2 + output[0, 2, :]**2 + output[0, 3, :]**2
-                compute_intensity = sp.compute_amp if config.intens_method == 'amplitude' else sp.compute_power
-                intensity = compute_intensity(norm_2)
-                All_intensity[i, j] = intensity
-        
+        All_intensity, range_theta, range_phi = compute_intensity_map(theta, phi, 
+                                                                      Xsource, 
+                                                                      xant, yant, zant, 
+                                                                      signals, 
+                                                                      config.f_min, config.f_max, 
+                                                                      config.noise_std, config.jitter_std, 
+                                                                      config.intens_method)
+                                
         amps = np.max( np.linalg.norm(signals[1:], axis=0), axis=-1)
         k_layout = np.average(antenna_pos, axis=0, weights=amps) - xmax_pos
         k_layout /= np.linalg.norm(k_layout)
