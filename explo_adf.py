@@ -109,9 +109,7 @@ def main(config: Config):
                                                                       Xsource, 
                                                                       xant, yant, zant, 
                                                                       signals, 
-                                                                      config.f_min, config.f_max, 
-                                                                      config.noise_std, config.jitter_std, 
-                                                                      config.intens_method)
+                                                                      config)
                                 
         amps = np.max( np.linalg.norm(signals[1:], axis=0), axis=-1)
         k_layout = np.average(antenna_pos, axis=0, weights=amps) - xmax_pos
