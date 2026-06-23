@@ -21,9 +21,9 @@ def compute_Cerenkov_classic(Xsource, ns=325, kr=-0.1218):
     n_atm=1.E0+1.E-6*rh0
 
     omega_cr = np.arccos(1./n_atm)
-    return(omega_cr)
+    return omega_cr
 
-def ADF_parameters(theta, phi, delta_omega, Xants, Xsource, Bn=Bn):
+def ADF_parameters(theta, phi, delta_omega, Xants, Xsource, Bn=Bn, norm_weights=False, constant=True):
     """
     Compute all geometric parameters for the ADF function.
     
@@ -43,36 +43,39 @@ def ADF_parameters(theta, phi, delta_omega, Xants, Xsource, Bn=Bn):
         adf       : (N,) ADF amplitude for each antenna
     """
 
-    K = shower_direction_vector(theta, phi)
-   
-    asym_coeff = -0.003*np.rad2deg(theta)+0.220
-
-    asym = asym_coeff/np.sqrt(1. - np.dot(K,Bn)**2)
 
     l_ant = distance_source_antenna(Xants, Xsource)
-    eta = eta_compute(theta, phi, Bvec, Xants, Xsource)
+    eta = eta_compute(theta, phi, Bn, Xants, Xsource)
     omega = omega_compute(theta, phi, Xants, Xsource)
-    omega_cr = [compute_Cerenkov_classic(Xsource)]*len(Xants)
+    omega_cr = np.ones(len(Xants))*compute_Cerenkov_classic(Xsource)
     adf = 1/l_ant / (1.+4.*( ((np.tan(omega)/np.tan(omega_cr))**2 - 1. )/delta_omega)**2)
+
+    K = shower_direction_vector(theta, phi)
+    asym_coeff = -0.48
+    sin_alpha = np.sqrt(1. - np.dot(K,Bn)**2)
+    asym = asym_coeff/sin_alpha
     adf *= 1. + asym*np.cos(eta) # 
+
+    if constant:
+        adf += 1/l_ant / 100
+    if norm_weights:
+        adf /= np.linalg.norm(adf)
     
     return eta, omega, omega_cr, l_ant, adf
 
-def compute_adf_weights(xs, ys, zs, theta, phi, xant, yant, zant, delta_omega=0.2, norm_weights=True):
+
+def prior_adf(weights, omegas, omega_cr, alpha=1000):
     """
-    Compute ADF weights for given source and antenna positions.
+    Compute the ADF prior based on the difference between the observed angles and the Cherenkov angle.
 
     Parameters:
-        xs, ys, zs (float): Source coordinates.  float (1)
-        theta, phi (float): Source direction angles in radians. float (1)
-        xant, yant, zant (ndarray): Antenna coordinates. shape (n_antennas,)
+        weights (ndarray): ADF weights for each antenna. shape (n_antennas,)
+        omegas (ndarray): Observed angles for each antenna. shape (n_antennas,)
+        omega_cr (ndarray): Cherenkov angles for each antenna. shape (n_antennas,)
     Returns:
-        ndarray: Computed ADF weights for each antenna. shape (n_antennas)
+        float: Computed ADF prior value.
     """
-    eta, omega, omega_cr, l_ant, adf = ADF_parameters(theta, phi, delta_omega=delta_omega,
-                                                     Xants=np.stack((xant, yant, zant), axis=-1),
-                                                     Xsource=np.array([xs, ys, zs]))
-    weights = adf 
-    if norm_weights:
-        weights /= np.linalg.norm(weights)
-    return weights
+    diff = np.abs(omegas - omega_cr)
+    # prior_ant = np.exp(-alpha * diff)
+    prior_ant = -alpha * diff**2
+    return np.sum(weights * prior_ant)

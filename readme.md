@@ -8,7 +8,7 @@ Each entry lists the Python type, default value (as in the source), units when a
 ### Config entries
 
 - `path_to_library` (str)
-	- Default: `/volatile/home/af274537/Documents/WorkingDir/HERON/SphericalPhasing_2/data/TauLibrary_972Events_Eshower_2e7-1e9GeV_XYZCoordinates.npz`
+	- Default: `/volatile/home/af274537/Documents/DATA/HERON/TauLibrary_972Events_Eshower_2e7-1e9GeV_XYZCoordinates.npz`
 	- Description: Path to the NPZ event/library file used by `read_sims_module.read_library`. This file contains the simulated events, antenna definitions, electric fields and timing data used for reconstructions.
 
 - `save_path` (str)

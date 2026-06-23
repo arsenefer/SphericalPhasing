@@ -4,11 +4,11 @@ import sys
 sys.path.append('/volatile/home/af274537/Documents/WorkingDir/HERON/SphericalPhasing_2')
 
 import matplotlib.pyplot as plt
-import beamforming.read_sims_module as rm
-from beamforming.adf_weights import compute_adf_weights, ADF_parameters, shower_direction_vector
-from beamforming.utils import Bn
-import beamforming.beamforming_module_para as bm
-import beamforming.sampling_module_para as sp
+import beamforming_module.read_sims_module as rm
+from beamforming_module.adf_weights import  ADF_parameters, shower_direction_vector
+from beamforming_module.utils import Bn
+import beamforming_module.beamforming_module_para as bm
+import beamforming_module.sampling_module_para as sp
 
 R2D = 180/np.pi
 
@@ -28,8 +28,8 @@ class Config:
     """
     Configuration class to hold all parameters for the reconstruction process.
     """
-    # path_to_library: str = "/volatile/home/af274537/Documents/WorkingDir/HERON/SphericalPhasing_2/data/TauLibrary_250Events_Eshower_1e8-1e10GeV_XYZCoordinates_CorrXmax.npz"
-    path_to_library: str = "/volatile/home/af274537/Documents/WorkingDir/HERON/SphericalPhasing_2/data/TauLibrary_972Events_Eshower_2e7-1e9GeV_XYZCoordinates_CorrXmax.npz"
+    # path_to_library: str = "/volatile/home/af274537/Documents/DATA/HERON/TauLibrary_250Events_Eshower_1e8-1e10GeV_XYZCoordinates_CorrXmax.npz"
+    path_to_library: str = "/volatile/home/af274537/Documents/DATA/HERON/TauLibrary_972Events_Eshower_2e7-1e9GeV_XYZCoordinates_CorrXmax.npz"
     save_path: str = './results_adf'
     sampling: str = 'random'
     n_walkers: int = 200

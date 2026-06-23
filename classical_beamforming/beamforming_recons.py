@@ -7,12 +7,14 @@ from time import time
 
 # Importing custom modules
 # import beamforming.sequential.beamforming_module as bm
-import beamforming.read_sims_module as rm
-import beamforming.signal_module as sm
-import beamforming.sampling_module_para as sp
-import beamforming.parameter_reconstruction as rec
+sys.path.insert(0, '/volatile/home/af274537/Documents/WorkingDir/HERON/SphericalPhasing_2')
+sys.path.insert(0, '/pbs/home/a/aferrier/WorkingDir/HERON/SphericalPhasing')
+import beamforming_module.read_sims_module as rm
+import beamforming_module.signal_module as sm
+import beamforming_module.sampling_module_para as sp
+import beamforming_module.parameter_reconstruction as rec
 
-from beamforming.sampler_init import (
+from beamforming_module.sampler_init import (
     cubic_bound_function, 
     cubic_init, 
     sphere_bound_function, 
@@ -20,7 +22,8 @@ from beamforming.sampler_init import (
     xyz_parameter_bounds, 
     flat_sphere_bound_function, 
     flat_sphere_init,
-    create_regular_grid
+    create_regular_grid, 
+    sample_3planes
 )
 
 R2D = 180. / np.pi  # Conversion factor from radians to degrees
@@ -30,15 +33,15 @@ class Config:
     """
     Configuration class to hold all parameters for the reconstruction process.
     """
-    path_to_library: str = "/volatile/home/af274537/Documents/WorkingDir/HERON/SphericalPhasing_2/data/TauLibrary_972Events_Eshower_2e7-1e9GeV_XYZCoordinates_CorrXmax.npz"
+    path_to_library: str = "/volatile/home/af274537/Documents/DATA/HERON/TauLibrary_972Events_Eshower_2e7-1e9GeV_XYZCoordinates_CorrXmax.npz"
     save_path: str = './results'
     sampling: str = 'random'
     n_walkers: int = 200
-    n_steps: int = 400
+    n_steps: int = 600
     step_size: float = 1000.
-    f_min: float = 0
-    f_max: float = 5000
-    noise_std: float = 0
+    f_min: float = 50
+    f_max: float = 200
+    noise_std: float = 13
     jitter_std: float = 0
     bounds: str = 'flat_sphere'  # Options: 'cubic', 'sphere', 'flat_sphere'
     r: float = 10.e3  # Radius for spherical bounds
@@ -131,7 +134,7 @@ def save_samples(saving_path, walker_positions, beamformed_intensity_array, even
         temp (float): Temperature for sampling.
         **kwargs: Additional parameters to save.
     """
-    directory = f"{saving_path}/AAAAAAAAAAAAAAAAAAAAAAAAAAAA_samples_sampling{sampling}_nwalkers{n_walkers}_nsteps{n_steps}_stepsize{step_size:.0f}_bounds{bounds}_intens{amp_or_fluence}_temp{temp:.0f}"
+    directory = f"{saving_path}/samples_sampling{sampling}_nwalkers{n_walkers}_nsteps{n_steps}_stepsize{step_size:.0f}_bounds{bounds}_intens{amp_or_fluence}_temp{temp:.0f}"
     os.makedirs(directory, exist_ok=True)
     np.savez(f"{directory}/event{eventi}.npz", 
              walker_positions=walker_positions, 
@@ -146,7 +149,7 @@ def save_samples(saving_path, walker_positions, beamformed_intensity_array, even
              **kwargs)
 
 
-def main(config: Config):
+def main(config: Config, args=None):
     """
     Main function to perform the reconstruction process.
 
@@ -155,7 +158,9 @@ def main(config: Config):
     """
     name_prefix = "LEevents_"
     tau_events, antennas, efields, sttimes = rm.read_library(config.path_to_library)
-    Eventlist = range(8, 10)  # List of events to process
+    if args is not None:
+        Eventlist = range(args.first_event, min(args.last_event, len(tau_events)))
+    print(f"Processing events from index {args.first_event} to {args.last_event-1} (total {len(Eventlist)} events)")
     Nevents = len(Eventlist)
 
     results = []
@@ -169,7 +174,7 @@ def main(config: Config):
          xant, yant, zant, signals, phi, theta, shower_dir) = rm.read_trace(
             eventi, tau_events, antennas, efields, sttimes, config.f_min, config.f_max, config.noise_std, config.jitter_std
         )
-        reference_antenna = np.argmax(signals[1:].max(axis=-1).sum(axis=0))
+        reference_antenna = np.argmax(efields[1:].max(axis=-1).sum(axis=0))
 
         # Define bounds and initialize walkers based on the configuration
         if config.bounds == 'cubic':
@@ -304,11 +309,24 @@ def main(config: Config):
     results = pd.DataFrame(results)
     results.to_csv(f"{config.save_path}/samples_sampling{config.sampling}_nwalkers{config.n_walkers}_nsteps{config.n_steps}_stepsize{config.step_size:.0f}_bounds{config.bounds}_intens{config.intens_method}_temp{config.temp:.0f}/recons_base.csv", index=False)
 
-
+def parse_arguments():
+    import argparse
+    parser = argparse.ArgumentParser(description="Run the reconstruction process with specified parameters.")
+    parser.add_argument('--first-event', type=int, default=0, help='Index of the first event to process')
+    parser.add_argument('--last-event', type=int, default=1000, help='Index of the last event to process')
+    
+    args = parser.parse_args()
+    return args
 if __name__ == "__main__":
     try:
         print("Starting the reconstruction process...")
         config = Config() 
-        main(config)
+        if 'volatile' not in os.getcwd():
+            config.path_to_library = "/sps/grand/vdecoene/HERON/NuSimLibrary/TauLibrary_972Events_Eshower_2e7-1e9GeV_XYZCoordinates_CorrXmax.npz"
+            # config.path_to_library = "/sps/grand/vdecoene/HERON/NuSimLibrary/TauLibrary_250Events_Eshower_1e8-1e10GeV_XYZCoordinates_CorrXmax.npz"
+            config.save_path = f"/sps/grand/aferrier/HERON_results/classical_bf"
+
+        args = parse_arguments()
+        main(config, args=args)
     except KeyboardInterrupt:
         print('Exiting')

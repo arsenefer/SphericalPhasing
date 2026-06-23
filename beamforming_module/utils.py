@@ -30,7 +30,34 @@ def get_peaks_hilbert(signal):
 
     return peakt.reshape(len(signal[0,:,:])), peaka.reshape(len(signal[0,:,:]))
 
+def sph2cart(theta:np.ndarray, phi:np.ndarray, r=1):
+    """
+    Convert spherical coordinate to cartesian coordinate
+    """
+    if isinstance(theta, (np.floating, float, np.ndarray)):
+        x = r*np.sin(theta)*np.cos(phi)
+        y = r*np.sin(theta)*np.sin(phi)
+        z = r*np.cos(theta)
+        return np.stack((x, y, z), axis=-1)
+    elif type(theta) is torch.Tensor:
+        x = r*torch.sin(theta)*torch.cos(phi)
+        y = r*torch.sin(theta)*torch.sin(phi)
+        z = r*torch.cos(theta)
+        return torch.stack((x, y, z), dim=-1)
+    else:
+        raise TypeError(f"Input must be a numpy array or a torch tensor, not {type(theta)}.")
 
+def cart2sph(x:np.ndarray, y:np.ndarray, z:np.ndarray):
+    """
+    Convert cartesian coordinate to spherical coordinate
+    """
+    r = np.sqrt(x**2 + y**2 + z**2)
+    theta = np.arccos(z/r)
+    phi = np.arctan2(y, x)
+    return theta, phi
 ########Constants
 Bvec =  [-20.16850382,  10.52718602, 0.37808577]
 Bn = Bvec/np.linalg.norm(Bvec)
+
+Bn[2] = -np.linalg.norm(Bn[:2])*np.tan(np.radians(35.06))
+Bn = Bn/np.linalg.norm(Bn)

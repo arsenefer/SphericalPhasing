@@ -165,6 +165,7 @@ def filter_Efields(efields, fmin, fmax):
         dt =(efields[0,0,1] - efields[0,0,0])
         fs = 1/dt * 1e3  #MHz
         filt_Efields = np.copy(efields)
+        print(f"fmin={fmin:.1f} MHz, fmax={fmax:.1f} MHz, fs={fs:.1f} MHz")
         filt_Efields[1:,:,:] = _butter_bandpass_filter(filt_Efields[1:,:,:], fmin, fmax, fs)
         return filt_Efields
     else:

@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-import beamforming.signal_module as sm
+import beamforming_module.signal_module as sm
 ################################################################################
 ##Functions
 
@@ -12,14 +12,18 @@ def load_library(path_to_library_):
     return library
 
 
-def read_library(path_to_library_):
-
+def read_library(path_to_library_, event_list=None):
     library = load_library(path_to_library_)
-    tau_events = library['tau_grid']
-    antennas   = library['antenna_grid']
-    efields    = library['efield']
-    sttimes    = library['starttimes']
-
+    if event_list is None:
+        tau_events = library['tau_grid']
+        antennas   = library['antenna_grid']
+        efields    = library['efield']
+        sttimes    = library['starttimes']
+    else:
+        efields    = library['efield'][event_list]
+        sttimes    = library['starttimes'][event_list]
+        tau_events = library['tau_grid'][event_list]
+        antennas   = library['antenna_grid']
     return tau_events, antennas, efields, sttimes
 
 
@@ -59,7 +63,6 @@ def read_trace(eventi, tau_events, antennas, efields, sttimes, f_min, f_max, noi
     (azim, zen, en_nu, 
      en_tau, tau_pos, xmax_pos, 
      event_efield, antenna_pos) = get_event(eventi, tau_events, antennas, efields, sttimes)
-    mask = event_efield
     xant, yant, zant = antenna_pos.T
     signals =  sm.process_signals_Efield(event_efield, azim, zen, f_min, f_max, noise_std, jitter_std)
 

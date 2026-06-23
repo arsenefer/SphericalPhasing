@@ -6,13 +6,13 @@ from dataclasses import dataclass
 from time import time
 from itertools import product
 # Importing custom modules
-import beamforming.beamforming_module_para as bm
-import beamforming.read_sims_module as rm
-import beamforming.signal_module as sm
-import beamforming.sampling_module_para as sp
-import beamforming.parameter_reconstruction as rec
+import beamforming_module.beamforming_module_para as bm
+import beamforming_module.read_sims_module as rm
+import beamforming_module.signal_module as sm
+import beamforming_module.sampling_module_para as sp
+import beamforming_module.parameter_reconstruction as rec
 
-from beamforming.adf_weights import compute_adf_weights
+ 
 
 R2D = 180. / np.pi  # Conversion factor from radians to degrees
 
@@ -21,7 +21,7 @@ class Config:
     """
     Configuration class to hold all parameters for the reconstruction process.
     """
-    path_to_library: str = "/volatile/home/af274537/Documents/WorkingDir/HERON/SphericalPhasing_2/data/TauLibrary_972Events_Eshower_2e7-1e9GeV_XYZCoordinates_CorrXmax.npz"
+    path_to_library: str = "/volatile/home/af274537/Documents/DATA/HERON/TauLibrary_972Events_Eshower_2e7-1e9GeV_XYZCoordinates_CorrXmax.npz"
     save_path: str = './results_adf'
     sampling: str = 'random'
     n_walkers: int = 200
